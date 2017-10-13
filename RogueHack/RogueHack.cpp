@@ -25,18 +25,23 @@ using namespace std;
 #define STICK_C 15
 #define DOOR4_R SCREEN_ROWS - 2
 #define DOOR4_C 25
-#define MONSTER_HP 33
 vector<string> screen;
 int room = 1;
 vector<string> inventory;
 
-bool monsterAlive = true;
+vector<string> classes = { "soldier", "wizard" };
 
-int atk = 15;
-int hp = 100;
-int gold = 0;
-int xp = 10;
-int lvl = 1;
+bool monster1Alive = true;
+int monster1HP = 33;
+bool hasStick = false;
+
+int atk;
+int hp;
+int gold;
+int xp;
+int lvl;
+
+
 
 #define MAP_EMPTY '.'
 #define MAP_VWALL '|'
@@ -125,6 +130,62 @@ vector<string> checkInventoryWeapon()
 	return inventoryWeapons;
 }
 
+void monsterAttack()
+{
+	cout << "The monster attacks you." << endl;
+	srand((int)time(0));
+	int hpLost = (rand() % 20) + 10;
+	cout << "You lost " << hpLost << " HP" << endl;
+	hp -= hpLost;
+
+	if (!(checkInventoryWeapon().empty())) //checks if you have weapon in inventory
+	{
+		string weapon_choice = "null";
+		while (!(find(inventory.begin(), inventory.end(), weapon_choice) != inventory.end())) //weapon_choice is not in inventory
+		{
+			cout << "You attack the monster." << endl;
+			cout << "Which weapon would you like to use to attack the monster?" << endl;
+			for (int i = 0; i < checkInventoryWeapon().size(); i++)
+			{
+				cout << i + 1 << ". " << checkInventoryWeapon()[i] << ' ' << endl;
+			}
+			cin >> weapon_choice;
+			if (!(find(inventory.begin(), inventory.end(), weapon_choice) != inventory.end()))
+			{
+				cout << "Please enter a valid option." << endl;
+			}
+		}
+
+		for (int i = 0; i < checkInventoryWeapon().size(); i++)
+		{
+			if (weapon_choice == checkInventoryWeapon()[i])
+			{
+				cout << "You used the " << checkInventoryWeapon()[i] << " to attack the monster" << endl;
+			}
+		}
+
+		srand((int)time(0));
+		int monsterhpLost = (rand() % 20) + atk; //need to make different weapons have different attack power
+		if (monsterhpLost >= monster1HP)
+		{
+			cout << "You dealt " << monsterhpLost << " damage and killed the monster" << endl;
+			monster1Alive = false;
+		}
+		else
+		{
+			cout << "You dealt " << monsterhpLost << " damage but the monster is still alive" << endl
+				<< "You will have to attack again" << endl;
+			monster1HP -= monsterhpLost;
+		}
+
+	}
+	else
+	{
+		cout << "You do not have a weapon to attack the monster." << endl;
+	}
+}
+
+
 int moveMonsterRow(int currentMonsterRow, int currentMonsterCol)
 {
 	srand((int)time(0));
@@ -143,7 +204,7 @@ int moveMonsterRow(int currentMonsterRow, int currentMonsterCol)
 		}
 		else
 		{
-			//monsterAttack();
+			monsterAttack();
 		}
 	}
 	else if (r == 2)
@@ -160,7 +221,7 @@ int moveMonsterRow(int currentMonsterRow, int currentMonsterCol)
 		}
 		else
 		{
-			//monsterAttack();
+			monsterAttack();
 		}
 	}
 
@@ -184,31 +245,31 @@ int moveMonsterColumn(int currentMonsterRow, int currentMonsterColumn)
 		}
 		else
 		{
-			//monsterAttack();
+			monsterAttack();
 		}
 	}
 	else if (r == 2)
 	{
-		if (screen[currentMonsterRow][currentMonsterColumn + 1] == MAP_EMPTY)
-		{
-			currentMonsterColumn += 1;
-			return currentMonsterColumn;
-		}
-		else if (screen[currentMonsterRow][currentMonsterColumn - 1] == MAP_EMPTY)
-		{
-			currentMonsterColumn -= 1;
-			return currentMonsterColumn;
-		}
-		else
-		{
-			//monsterAttack();
-		}
+if (screen[currentMonsterRow][currentMonsterColumn + 1] == MAP_EMPTY)
+{
+	currentMonsterColumn += 1;
+	return currentMonsterColumn;
+}
+else if (screen[currentMonsterRow][currentMonsterColumn - 1] == MAP_EMPTY)
+{
+	currentMonsterColumn -= 1;
+	return currentMonsterColumn;
+}
+else
+{
+	monsterAttack();
+}
 	}
 }
 
-void setMapRoom1(vector<string> inventory)
+void setMapRoom1()
 {
-	for (int l = 0; l < SCREEN_ROWS-1; l++)  //-1 because statInfo takes up the last row
+	for (int l = 0; l < SCREEN_ROWS - 1; l++)  //-1 because statInfo takes up the last row
 	{
 		screen[l][0] = MAP_VWALL;
 		screen[l][SCREEN_COLS - 1] = MAP_VWALL;
@@ -246,7 +307,7 @@ void setMapRoom2()
 
 }
 
-void setMapRoom3(bool hasStick)
+void setMapRoom3()
 {
 
 	for (int l = 0; l < SCREEN_ROWS - 1; l++)  //-1 because statInfo takes up the last row
@@ -282,8 +343,32 @@ int main()
 	int myC = 3;
 	int monsterR = 5;
 	int monsterC = 4;
-	cout << "Welcome to RogueHack! (Definitely not a spin-off of Rogue and NetHack)" << endl 
+	cout << "Welcome to RogueHack! (Definitely not a spin-off of Rogue and NetHack)" << endl
 		<< "If you want to learn how to play, type 'help'" << endl;
+	cout << "Pick your class from the following list: " << endl;
+
+	string classChoice;
+	for (int i = 0; i < classes.size(); i++)
+	{
+		cout << i + 1 << ". " << classes[i] << endl;
+	}
+	cin >> classChoice;
+	for (int i = 0; i < classes.size(); i++)
+	{
+		if (classChoice == classes[i])
+		{
+			cout << "You have picked " << classes[i] << "." << endl;
+			atk = 15; //need to have different stats based on different classes
+			hp = 100;
+			gold = 0;
+			xp = 10;
+			lvl = 1;
+		}
+		else
+		{
+			cout << "Please enter a valid choice." << endl;
+		}
+	}
 	
 
 	while (choice != "q" && choice != "Q" && choice != "quit" && choice != "Quit")
@@ -292,7 +377,7 @@ int main()
 		setInfo(atk, hp, gold, xp, lvl);
 		if (room == 1)
 		{
-			setMapRoom1(inventory);
+			setMapRoom1();
 
 			if (myR == KEY1_R && myC == KEY1_C)
 			{
@@ -319,7 +404,7 @@ int main()
 		else if (room == 2)
 		{
 			setMapRoom2();
-			if (monsterAlive) 
+			if (monster1Alive) 
 			{
 				setMonster(monsterR, monsterC);
 				srand((int)time(0));
@@ -355,7 +440,16 @@ int main()
 		}
 		else if (room == 3)
 		{
-			setMapRoom3(find(inventory.begin(), inventory.end(), "stick") != inventory.end());
+			if (find(inventory.begin(), inventory.end(), "stick") != inventory.end())
+			{
+				hasStick = true;
+			}
+			else
+			{
+				hasStick = false;
+			}
+
+			setMapRoom3();
 
 			if (myR == STICK_R && myC == STICK_C)
 			{
@@ -584,7 +678,9 @@ int main()
 				<< "| - vertical wall\n"
 				<< "= - horizontal wall\n"
 				<< "+ - a door\n"
-				<< "^ - a useful object\n";
+				<< "^ - a useful object\n"
+				<< "m - a monster\n"
+				;
 		}
 		else if (choice == "i" || choice == "I" || choice == "inventory" || choice == "Inventory")
 		{
@@ -604,68 +700,12 @@ int main()
 		{
 			cout << "I don't understand that" << endl;
 		}
-
 		
 
-		
-		
-
-		if (monsterR == myR && monsterC == myC)
+		if (monsterR == myR && monsterC == myC && monster1Alive)
 		{
-			cout << "The monster attacks you." << endl;
-			srand((int)time(0));
-			int hpLost = (rand() % 30) + 10;
-			cout << "You lost " << hpLost << " HP" << endl;
-			hp -= hpLost;
-
-			if (!(checkInventoryWeapon().empty())) //checks if you have weapon in inventory
-			{
-				string weapon_choice = "null";
-				while (!(find(inventory.begin(), inventory.end(), weapon_choice) != inventory.end())) //weapon_choice is not in inventory
-				{
-					cout << "You attack the monster." << endl;
-					cout << "Which weapon would you like to use to attack the monster?" << endl;
-					for (int i = 0; i < checkInventoryWeapon().size(); i++)
-					{
-						cout << i + 1 << ". " << checkInventoryWeapon()[i] << ' ' << endl;
-					}
-					cin >> weapon_choice;
-					if (!(find(inventory.begin(), inventory.end(), weapon_choice) != inventory.end()))
-					{
-						cout << "Please enter a valid option." << endl;
-					}
-				}
-
-				for (int i = 0; i < checkInventoryWeapon().size(); i++)
-				{
-					if (weapon_choice == checkInventoryWeapon()[i])
-					{
-						cout << "You used the " << checkInventoryWeapon()[i] << " to attack the monster" << endl;
-					}
-				}
-
-				srand((int)time(0));
-				int monsterhpLost = (rand() % 20) + 30; //need to make different weapons have different attack power
-				if (monsterhpLost > MONSTER_HP)
-				{
-					cout << "You dealt " << monsterhpLost << " damage and killed the monster" << endl;
-					monsterAlive = false;
-				}
-				else
-				{
-					cout << "You dealt " << monsterhpLost << " damage but the monster is still alive" << endl
-						<< "You will have to attack again" << endl;
-				}
-
-			}
-			else
-			{
-				cout << "You do not have a weapon to attack the monster." << endl;
-			}
+			monsterAttack();
 		}
-
-
-
 
 		if (hp < 1)
 		{
