@@ -1,6 +1,20 @@
 // RogueHack.cpp : Defines the entry point for the console application.
 //
 
+//Things to improve:
+//make room switching smoother
+//add more quests and rooms
+//fix monster movement problems
+//add number choosing instead of name
+
+//For some reason going back to room 1 after killing the monsters causes script to crash??
+
+//Things I added:
+//another monster
+//secret gateway
+
+
+
 #include "stdafx.h"
 #include <iostream>
 #include <sstream>
@@ -13,27 +27,49 @@ using namespace std;
 
 #define SCREEN_ROWS 10
 #define SCREEN_COLS 30
+
 #define DOOR1_C SCREEN_COLS - 1
 #define DOOR1_R 5
 #define DOOR2_C 0
 #define DOOR2_R 5
-#define KEY1_R 3
-#define KEY1_C 8
 #define DOOR3_R 0
 #define DOOR3_C 25
-#define STICK_R 6
-#define STICK_C 15
 #define DOOR4_R SCREEN_ROWS - 2
 #define DOOR4_C 25
+#define GATEWAY1_R 5
+#define GATEWAY1_C SCREEN_COLS - 1
+#define DOOR5_R 5
+#define DOOR5_C 0
+#define HIDDENDOOR_R 0
+#define HIDDENDOOR_C 15
+
+#define KEY1_R 3
+#define KEY1_C 8
+#define STICK_R 6
+#define STICK_C 15
+#define DAGGER_R 7
+#define DAGGER_C 12
+#define HEALPOTION_R 3
+#define HEALPOTION_C 20
+#define NOTE_R 2
+#define NOTE_C 10
+
+
 vector<string> screen;
 int room = 1;
 vector<string> inventory;
+string weaponUsed = "";
 
 vector<string> classes = { "soldier", "wizard" };
 
-bool monster1Alive = true;
 int monster1HP = 33;
-bool hasStick = false;
+bool monster1Alive = true;
+bool monster2Alive = true;
+int monster2HP = 55;
+int monster1R = 5;
+int monster1C = 4;
+int monster2R = 7;
+int monster2C = 8;
 
 int atk;
 int hp;
@@ -41,7 +77,7 @@ int gold;
 int xp;
 int lvl;
 
-
+bool gatewayOpen = false;
 
 #define MAP_EMPTY '.'
 #define MAP_VWALL '|'
@@ -117,20 +153,48 @@ int checkLineEmpty(string rOrC, int number)
 	}
 }
 
-vector<string> checkInventoryWeapon()
+vector<string> weaponsInventory()
 {
-	bool woodenStick = false;
-	vector<string> inventoryWeapons;
-	//more weapons here
+	vector<string> weaponsInventory;
 	if (find(inventory.begin(), inventory.end(), "stick") != inventory.end()) //checks if inventory contains wooden stick
 	{
-		inventoryWeapons.push_back("stick");
+		weaponsInventory.push_back("stick");
+	}
+	if (find(inventory.begin(), inventory.end(), "dagger") != inventory.end()) //dagger
+	{
+
+		weaponsInventory.push_back("dagger");
 	}
 	//insert more weapons here using 'if' (not 'else if')
-	return inventoryWeapons;
+	return weaponsInventory;
 }
 
-void monsterAttack()
+int checkInventory(string item)
+{
+	for (int b = 0; b < inventory.size(); b++)
+	{
+		if (inventory[b] == item)
+		{
+			return b;
+		}
+	}
+	return -1;
+}
+
+int weaponPower(string weapon)
+{
+	if (weapon == "stick")
+	{
+		return 5;
+	}
+	if (weapon == "dagger")
+	{
+		return 10;
+	}
+	//insert more weapons here
+}
+
+void monsterAttack(int mNum, int currentMonsterRow, int currentMonsterCol)
 {
 	cout << "The monster attacks you." << endl;
 	srand((int)time(0));
@@ -138,16 +202,16 @@ void monsterAttack()
 	cout << "You lost " << hpLost << " HP" << endl;
 	hp -= hpLost;
 
-	if (!(checkInventoryWeapon().empty())) //checks if you have weapon in inventory
+	if (!(weaponsInventory().empty())) //checks if you have weapon in inventory
 	{
 		string weapon_choice = "null";
 		while (!(find(inventory.begin(), inventory.end(), weapon_choice) != inventory.end())) //weapon_choice is not in inventory
 		{
 			cout << "You attack the monster." << endl;
 			cout << "Which weapon would you like to use to attack the monster?" << endl;
-			for (int i = 0; i < checkInventoryWeapon().size(); i++)
+			for (int i = 0; i < weaponsInventory().size(); i++)
 			{
-				cout << i + 1 << ". " << checkInventoryWeapon()[i] << ' ' << endl;
+				cout << i + 1 << ". " << weaponsInventory()[i] << ' ' << endl;
 			}
 			cin >> weapon_choice;
 			if (!(find(inventory.begin(), inventory.end(), weapon_choice) != inventory.end()))
@@ -156,27 +220,49 @@ void monsterAttack()
 			}
 		}
 
-		for (int i = 0; i < checkInventoryWeapon().size(); i++)
+		for (int i = 0; i < weaponsInventory().size(); i++)
 		{
-			if (weapon_choice == checkInventoryWeapon()[i])
+			if (weapon_choice == weaponsInventory()[i])
 			{
-				cout << "You used the " << checkInventoryWeapon()[i] << " to attack the monster" << endl;
+				cout << "You used the " << weaponsInventory()[i] << " to attack the monster" << endl;
+				weaponUsed = weaponsInventory()[i];
 			}
 		}
-
-		srand((int)time(0));
-		int monsterhpLost = (rand() % 20) + atk; //need to make different weapons have different attack power
-		if (monsterhpLost >= monster1HP)
+		if (mNum == 1)
 		{
-			cout << "You dealt " << monsterhpLost << " damage and killed the monster" << endl;
-			monster1Alive = false;
+			srand((int)time(0));
+			int monster1hpLost = (rand() % 20) + atk + weaponPower(weaponUsed);
+			if (monster1hpLost >= monster1HP)
+			{
+				cout << "You dealt " << monster1hpLost << " damage and killed the monster" << endl;
+				screen[currentMonsterRow][currentMonsterCol] = MAP_EMPTY;
+				monster1Alive = false;
+			}
+			else
+			{
+				cout << "You dealt " << monster1hpLost << " damage but the monster is still alive" << endl
+					<< "You will have to attack again" << endl;
+				monster1HP -= monster1hpLost;
+			}
 		}
-		else
+		else if (mNum == 2)
 		{
-			cout << "You dealt " << monsterhpLost << " damage but the monster is still alive" << endl
-				<< "You will have to attack again" << endl;
-			monster1HP -= monsterhpLost;
+			srand((int)time(0));
+			int monster2hpLost = (rand() % 20) + atk + weaponPower(weaponUsed);
+			if (monster2hpLost >= monster1HP)
+			{
+				cout << "You dealt " << monster2hpLost << " damage and killed the monster" << endl;
+				screen[currentMonsterRow][currentMonsterCol] = MAP_EMPTY;
+				monster2Alive = false;
+			}
+			else
+			{
+				cout << "You dealt " << monster2hpLost << " damage but the monster is still alive" << endl
+					<< "You will have to attack again" << endl;
+				monster1HP -= monster2hpLost;
+			}
 		}
+		//else if monster2
 
 	}
 	else
@@ -186,86 +272,143 @@ void monsterAttack()
 }
 
 
-int moveMonsterRow(int currentMonsterRow, int currentMonsterCol)
+int moveMonsterRow(int mNum, int currentMonsterRow, int currentMonsterCol)
 {
-	srand((int)time(0));
-	int r = (rand() % 2) + 1;
-	if (r == 1)
+	if (mNum == 1)
 	{
-		if (screen[currentMonsterRow - 1][currentMonsterCol] == MAP_EMPTY)
-		{			
-			currentMonsterRow -= 1;
-			return currentMonsterRow;
-		}
-		else if(screen[currentMonsterRow + 1][currentMonsterCol] == MAP_EMPTY)
+		srand((int)time(0));
+		int r = (rand() % 2) + 1;
+		if (r == 1)
 		{
-			currentMonsterRow += 1;
-			return currentMonsterRow;
+			if (screen[currentMonsterRow - 1][currentMonsterCol] == MAP_EMPTY)
+			{
+				currentMonsterRow -= 1;
+				return currentMonsterRow;
+			}
+			else if (screen[currentMonsterRow + 1][currentMonsterCol] == MAP_EMPTY)
+			{
+				currentMonsterRow += 1;
+				return currentMonsterRow;
+			}
+			else
+			{
+				monsterAttack(1, currentMonsterRow, currentMonsterCol);
+			}
 		}
-		else
+		else if (r == 2)
 		{
-			monsterAttack();
+			if (screen[currentMonsterRow + 1][currentMonsterCol] == MAP_EMPTY)
+			{
+				currentMonsterRow += 1;
+				return currentMonsterRow;
+			}
+			else if (screen[currentMonsterRow - 1][currentMonsterCol] == MAP_EMPTY)
+			{
+				currentMonsterRow -= 1;
+				return currentMonsterRow;
+			}
+			else
+			{
+				monsterAttack(2, currentMonsterRow, currentMonsterCol);
+			}
 		}
 	}
-	else if (r == 2)
+	else if (mNum == 2)
 	{
-		if (screen[currentMonsterRow + 1][currentMonsterCol] == MAP_EMPTY)
+		srand((int)time(0));
+		int v = (rand() % 2) + 1;
+		if (v == 1)
 		{
-			currentMonsterRow += 1;
-			return currentMonsterRow;
+			if (screen[currentMonsterRow - 1][currentMonsterCol] == MAP_EMPTY)
+			{
+				currentMonsterRow -= 1;
+				return currentMonsterRow;
+			}
+			else if (screen[currentMonsterRow + 1][currentMonsterCol] == MAP_EMPTY)
+			{
+				currentMonsterRow += 1;
+				return currentMonsterRow;
+			}
+			else
+			{
+				monsterAttack(1, currentMonsterRow, currentMonsterCol);
+			}
 		}
-		else if (screen[currentMonsterRow - 1][currentMonsterCol] == MAP_EMPTY)
+		else if (v == 2)
 		{
-			currentMonsterRow -= 1;
-			return currentMonsterRow;
-		}
-		else
-		{
-			monsterAttack();
+			if (screen[currentMonsterRow + 1][currentMonsterCol] == MAP_EMPTY)
+			{
+				currentMonsterRow += 1;
+				return currentMonsterRow;
+			}
+			else if (screen[currentMonsterRow - 1][currentMonsterCol] == MAP_EMPTY)
+			{
+				currentMonsterRow -= 1;
+				return currentMonsterRow;
+			}
+			else
+			{
+				monsterAttack(2, currentMonsterRow, currentMonsterCol);
+			}
 		}
 	}
-
 }
 		
-int moveMonsterColumn(int currentMonsterRow, int currentMonsterColumn)
+int moveMonsterColumn(int currentMonsterRow, int currentMonsterCol)
 {
 	srand((int)time(0));
 	int r = (rand() % 2) + 1;
 	if (r == 1)
 	{
-		if (screen[currentMonsterRow][currentMonsterColumn - 1] == MAP_EMPTY)
+		if (screen[currentMonsterRow][currentMonsterCol - 1] == MAP_EMPTY)
 		{
-			currentMonsterColumn -= 1;
-			return currentMonsterColumn;
+			currentMonsterCol -= 1;
+			return currentMonsterCol;
 		}
-		else if (screen[currentMonsterRow][currentMonsterColumn + 1] == MAP_EMPTY)
+		else if (screen[currentMonsterRow][currentMonsterCol + 1] == MAP_EMPTY)
 		{
-			currentMonsterColumn += 1;
-			return currentMonsterColumn;
+			currentMonsterCol += 1;
+			return currentMonsterCol;
 		}
 		else
 		{
-			monsterAttack();
+			monsterAttack(1, currentMonsterRow, currentMonsterCol);
 		}
 	}
 	else if (r == 2)
 	{
-if (screen[currentMonsterRow][currentMonsterColumn + 1] == MAP_EMPTY)
-{
-	currentMonsterColumn += 1;
-	return currentMonsterColumn;
-}
-else if (screen[currentMonsterRow][currentMonsterColumn - 1] == MAP_EMPTY)
-{
-	currentMonsterColumn -= 1;
-	return currentMonsterColumn;
-}
-else
-{
-	monsterAttack();
-}
+		if (screen[currentMonsterRow][currentMonsterCol + 1] == MAP_EMPTY)
+		{
+			currentMonsterCol += 1;
+			return currentMonsterCol;
+		}
+		else if (screen[currentMonsterRow][currentMonsterCol - 1] == MAP_EMPTY)
+		{
+			currentMonsterCol -= 1;
+			return currentMonsterCol;
+		}
+		else
+		{
+			monsterAttack(2, currentMonsterRow, currentMonsterCol);
+		}
 	}
 }
+
+//bool monster1Alive()
+//{
+//	for (int r = 0; r < SCREEN_ROWS - 2; r++)
+//	{
+//		for (int c = 0; c < SCREEN_COLS - c; c++)
+//		{
+//			if (screen[r][c] == MAP_MONSTER)
+//			{
+//				return true;
+//			}
+//
+//		}
+//	}
+//	return false;
+//}
 
 void setMapRoom1()
 {
@@ -305,6 +448,11 @@ void setMapRoom2()
 
 	screen[DOOR3_R][DOOR3_C] = MAP_DOOR;
 
+	if (gatewayOpen)
+	{
+		screen[GATEWAY1_R][GATEWAY1_C] = MAP_DOOR;
+	}
+
 }
 
 void setMapRoom3()
@@ -323,7 +471,7 @@ void setMapRoom3()
 	}
 
 
-	if (!hasStick)
+	if (!(find(inventory.begin(), inventory.end(), "stick") != inventory.end()))
 	{
 		screen[STICK_R][STICK_C] = MAP_OBJECT;
 	}
@@ -331,44 +479,105 @@ void setMapRoom3()
 	{
 		screen[STICK_R][STICK_C] = MAP_EMPTY;
 	}
+
+	if (!(find(inventory.begin(), inventory.end(), "note") != inventory.end()))
+	{
+		screen[NOTE_R][NOTE_C] = MAP_OBJECT;
+	}
+	else
+	{
+		screen[NOTE_R][NOTE_C] = MAP_EMPTY;
+	}
+
 	screen[DOOR4_R][DOOR4_C] = MAP_DOOR;
+}
+
+void setMapRoom4()
+{
+
+	for (int l = 0; l < SCREEN_ROWS - 1; l++)  //-1 because statInfo takes up the last row
+	{
+		screen[l][0] = MAP_VWALL;
+		screen[l][SCREEN_COLS - 1] = MAP_VWALL;
+	}
+
+	for (int m = 0; m < SCREEN_COLS; m++)
+	{
+		screen[0][m] = MAP_HWALL;
+		screen[SCREEN_ROWS - 2][m] = MAP_HWALL;
+	}
+
+
+	if (!(find(inventory.begin(), inventory.end(), "dagger") != inventory.end()))
+	{
+		screen[DAGGER_R][DAGGER_C] = MAP_OBJECT;
+	}
+	else
+	{
+		screen[DAGGER_R][DAGGER_C] = MAP_EMPTY;
+	}
+	if (!(find(inventory.begin(), inventory.end(), "healing_potion") != inventory.end()))
+	{
+		screen[HEALPOTION_R][HEALPOTION_C] = MAP_OBJECT;
+	}
+	screen[DOOR5_R][DOOR5_C] = MAP_DOOR;
 }
 
 
 
 int main()
 {
+	int temp1 = 0;
 	string choice = "";
+	string useItem = "";
 	int myR = 4;
 	int myC = 3;
-	int monsterR = 5;
-	int monsterC = 4;
-	cout << "Welcome to RogueHack! (Definitely not a spin-off of Rogue and NetHack)" << endl
-		<< "If you want to learn how to play, type 'help'" << endl;
-	cout << "Pick your class from the following list: " << endl;
+	monster1R = 5;
+	monster1C = 4;
+	monster2R = 7;
+	monster2C = 8;
+	cout << "Welcome to RogueHack! (Definitely not a spin-off of Rogue and NetHack)" << endl;
 
-	string classChoice;
-	for (int i = 0; i < classes.size(); i++)
+	//classes
+	cout << "Pick your class from the following list: " << endl;
+	string classChoice = "";
+	for (int i = 0; i < classes.size(); i++) 
 	{
 		cout << i + 1 << ". " << classes[i] << endl;
 	}
-	cin >> classChoice;
-	for (int i = 0; i < classes.size(); i++)
+	
+	bool temp = false;
+	while (!temp) //classes loop
 	{
-		if (classChoice == classes[i])
+		cin >> classChoice;
+		if (find(classes.begin(), classes.end(), classChoice) != classes.end()) //classChoice is in classes
 		{
-			cout << "You have picked " << classes[i] << "." << endl;
-			atk = 15; //need to have different stats based on different classes
-			hp = 100;
-			gold = 0;
-			xp = 10;
-			lvl = 1;
+			temp = true;
+			cout << "You have picked " << classChoice << "." << endl;
+			if (classChoice == classes[0]) //soldier
+			{
+				atk = 15;
+				hp = 150;
+				gold = 0;
+				xp = 10;
+				lvl = 1;
+			}
+			else if(classChoice == classes[1]) //wizard
+			{
+				atk = 25;
+				hp = 100;
+				gold = 0;
+				xp = 10;
+				lvl = 1;
+			}
 		}
 		else
 		{
 			cout << "Please enter a valid choice." << endl;
 		}
 	}
+	
+	cout << "If you want to learn how to play, type 'help'" << endl;
 	
 
 	while (choice != "q" && choice != "Q" && choice != "quit" && choice != "Quit")
@@ -379,7 +588,7 @@ int main()
 		{
 			setMapRoom1();
 
-			if (myR == KEY1_R && myC == KEY1_C)
+			if (myR == KEY1_R && myC == KEY1_C && !(find(inventory.begin(), inventory.end(), "key") != inventory.end()))
 			{
 				inventory.push_back("key");
 				cout << "You picked up the object, it was a key." << endl;
@@ -404,26 +613,46 @@ int main()
 		else if (room == 2)
 		{
 			setMapRoom2();
-			if (monster1Alive) 
+
+			if (monster1Alive)
 			{
-				setMonster(monsterR, monsterC);
+				setMonster(monster1R, monster1C);
 				srand((int)time(0));
 				int random = (rand() % 3) + 1;
 				if (random == 1)
 				{
-					monsterR = moveMonsterRow(monsterR, monsterC);
+					monster1R = moveMonsterRow(1, monster1R, monster1C);
 				}
 				else if (random == 2)
 				{
-					monsterC = moveMonsterColumn(monsterR, monsterC);
+					monster1C = moveMonsterColumn(monster1R, monster1C);
 				}
 				else if (random == 3)
 				{
-					monsterR = moveMonsterRow(monsterR, monsterC);
-					monsterC = moveMonsterColumn(monsterR, monsterC);
+					monster1R = moveMonsterRow(1, monster1R, monster1C);
+					monster1C = moveMonsterColumn(monster1R, monster1C);
 				}
 			}
-			
+			if (monster2Alive)
+			{
+				setMonster(monster2R, monster2C);
+				srand((int)((time(0) * 2) / 5)); //need a better way to seperate from monster1
+				int random1 = (rand() % 3) + 1;
+				if (random1 == 1)
+				{
+					monster2R = moveMonsterRow(2, monster2R, monster2C);
+				}
+				else if (random1 == 2)
+				{
+					monster2C = moveMonsterColumn(monster2R, monster2C);
+				}
+				else if (random1 == 3)
+				{
+					monster2R = moveMonsterRow(2, monster2R, monster2C);
+					monster2C = moveMonsterColumn(monster2R, monster2C);
+				}
+			}
+
 
 
 			if (myR == DOOR2_R && myC == DOOR2_C)
@@ -437,24 +666,29 @@ int main()
 				room = 3;
 				myR = SCREEN_ROWS - 2;
 			}
+
+			if (myR == GATEWAY1_R && myC == GATEWAY1_C && gatewayOpen)
+			{
+				room = 4;
+				myC = 0;
+			}
 		}
 		else if (room == 3)
 		{
-			if (find(inventory.begin(), inventory.end(), "stick") != inventory.end())
-			{
-				hasStick = true;
-			}
-			else
-			{
-				hasStick = false;
-			}
 
 			setMapRoom3();
 
-			if (myR == STICK_R && myC == STICK_C)
+			if (myR == STICK_R && myC == STICK_C && !(find(inventory.begin(), inventory.end(), "stick") != inventory.end()))
 			{
 				cout << "You obtain a wooden stick" << endl;
 				inventory.push_back("stick");
+			}
+
+			if (myR == NOTE_R && myC == NOTE_C && !(find(inventory.begin(), inventory.end(), "note") != inventory.end()))
+			{
+				cout << "You find a note." << endl;
+				cout << "It says 'TOP, 15'" << endl;
+				inventory.push_back("note");
 			}
 
 			if (myR == DOOR4_R && myC == DOOR4_C)
@@ -462,7 +696,38 @@ int main()
 				room = 2;
 				myR = 0;
 			}
+
 		}
+		else if (room == 4)
+		{
+			setMapRoom4();
+			if (myR == DAGGER_R && myC == DAGGER_C && !(find(inventory.begin(), inventory.end(), "dagger") != inventory.end()))
+			{
+				cout << "You obtain a small dagger" << endl;
+				inventory.push_back("dagger");
+			}
+			if (myR == HEALPOTION_R && myC == HEALPOTION_C && !(find(inventory.begin(), inventory.end(), "healing_potion") != inventory.end()))
+			{
+				cout << "You obtain a healing potion" << endl;
+				inventory.push_back("healing_potion");
+			}
+			if (myR == DOOR5_R && myC == DOOR5_C)
+			{
+				room = 2;
+				myC = SCREEN_COLS - 1;
+			}
+			if (myR == HIDDENDOOR_R && myC == HIDDENDOOR_C)
+			{
+				room = 5;
+				myR = SCREEN_ROWS - 2;
+			}
+		}
+		else if (room == 5)
+		{
+
+		}
+
+
 		setPlayer(myR, myC);
 
 		printScreen();
@@ -472,9 +737,10 @@ int main()
 
 		system("cls");
 
+		//player movements
 		if (choice == "a")  // Go left by one
 		{
-			if (screen[myR][myC - 1] != MAP_VWALL && screen[myR][myC - 1] != MAP_HWALL)
+			if (screen[myR][myC - 1] != MAP_VWALL && screen[myR][myC - 1] != MAP_HWALL ||  (myR == HIDDENDOOR_R && myC - 1 == HIDDENDOOR_C))
 			{
 				myC -= 1;
 			}
@@ -485,7 +751,7 @@ int main()
 		}
 		else if (choice == "d")  // Go right by one
 		{
-			if (screen[myR][myC + 1] != MAP_VWALL && screen[myR][myC + 1] != MAP_HWALL)
+			if (screen[myR][myC + 1] != MAP_VWALL && screen[myR][myC + 1] != MAP_HWALL || (myR == HIDDENDOOR_R && myC + 1 == HIDDENDOOR_C))
 			{
 				myC += 1;
 			}
@@ -496,7 +762,7 @@ int main()
 		}
 		else if (choice == "w")  // Go up by one
 		{
-			if (screen[myR - 1][myC] != MAP_VWALL && screen[myR - 1][myC] != MAP_HWALL)
+			if (screen[myR - 1][myC] != MAP_VWALL && screen[myR - 1][myC] != MAP_HWALL ||  (myR - 1 == HIDDENDOOR_R && myC == HIDDENDOOR_C))
 			{
 				myR -= 1;
 			}
@@ -507,7 +773,7 @@ int main()
 		}
 		else if (choice == "s")  // Go down by one
 		{
-			if (screen[myR + 1][myC] != MAP_VWALL && screen[myR + 1][myC] != MAP_HWALL)
+			if (screen[myR + 1][myC] != MAP_VWALL && screen[myR + 1][myC] != MAP_HWALL ||  (myR + 1 == HIDDENDOOR_R && myC == HIDDENDOOR_C))
 			{
 				myR += 1;
 			}
@@ -518,7 +784,7 @@ int main()
 		}
 		else if (choice == "wd" || choice == "dw")
 		{
-			if (screen[myR - 1][myC + 1] != MAP_VWALL && screen[myR - 1][myC + 1] != MAP_HWALL)
+			if (screen[myR - 1][myC + 1] != MAP_VWALL && screen[myR - 1][myC + 1] != MAP_HWALL ||  (myR - 1 == HIDDENDOOR_R && myC + 1 == HIDDENDOOR_C))
 			{
 				myR -= 1;
 				myC += 1;
@@ -530,7 +796,7 @@ int main()
 		}
 		else if (choice == "wa" || choice == "aw")
 		{
-			if (screen[myR - 1][myC - 1] != MAP_VWALL && screen[myR - 1][myC - 1] != MAP_HWALL)
+			if (screen[myR - 1][myC - 1] != MAP_VWALL && screen[myR - 1][myC - 1] != MAP_HWALL ||  (myR - 1 == HIDDENDOOR_R && myC - 1 == HIDDENDOOR_C))
 			{
 				myR -= 1;
 				myC -= 1;
@@ -542,7 +808,7 @@ int main()
 		}
 		else if (choice == "sa" || choice == "as")
 		{
-			if (screen[myR + 1][myC - 1] != MAP_VWALL && screen[myR + 1][myC - 1] != MAP_HWALL)
+			if (screen[myR + 1][myC - 1] != MAP_VWALL && screen[myR + 1][myC - 1] != MAP_HWALL ||  (myR + 1 == HIDDENDOOR_R && myC - 1 == HIDDENDOOR_C))
 			{
 				myR += 1;
 				myC -= 1;
@@ -554,7 +820,7 @@ int main()
 		}
 		else if (choice == "sd" || choice == "ds")
 		{
-			if (screen[myR + 1][myC + 1] != MAP_VWALL && screen[myR + 1][myC + 1] != MAP_HWALL)
+			if (screen[myR + 1][myC + 1] != MAP_VWALL && screen[myR + 1][myC + 1] != MAP_HWALL || (myR + 1 == HIDDENDOOR_R && myC + 1 == HIDDENDOOR_C))
 			{
 				myR += 1;
 				myC += 1;
@@ -653,6 +919,8 @@ int main()
 				myR += 1;
 			}
 		}
+
+		//other commands
 		else if (choice == "H" || choice == "h" || choice == "Help" || choice == "help")
 		{
 			cout << "RogueHack is a text adventure game with ASCII graphics.\n"
@@ -670,6 +938,8 @@ int main()
 				<< "SD (or DS) - move diagonally one space down and to the right\n"
 				<< "SA (or AS) - move diagonally one space down and to the left\n"
 				<< "I - view inventory\n"
+				<< "E - view weapons\n"
+				<< "U - use an object in your inventory\n"
 				<< "Q - quit game\n"
 				<< "\n"
 				<< "List of objects:\n"
@@ -690,22 +960,100 @@ int main()
 			}
 			else
 			{
+				cout << "Your inventory: " << endl;
 				for (int d = 0; d < inventory.size(); d++)
 				{
 					cout << inventory[d] << endl;
 				}
 			}
 		}
-		else if (choice != "q" || choice != "Q" || choice != "quit" || choice != "Quit")
+		else if (choice == "e" || choice == "E" || choice == "weapons" || choice == "Weapons")
 		{
-			cout << "I don't understand that" << endl;
+			if (weaponsInventory().size() == 0)
+			{
+				cout << "You don't have any weapons" << endl;
+			}
+			else
+			{
+				cout << "Your weapons: " << endl;
+				for (int d = 0; d < weaponsInventory().size(); d++)
+				{
+					cout << weaponsInventory()[d] << endl;
+				}
+			}
+		}
+		else if (choice == "u" || choice == "U" || choice == "use" || choice == "Use")
+		{
+			cout << "Which object would you like to use?" << endl;
+			cin >> useItem;
+			
+			if (find(inventory.begin(), inventory.end(), useItem) != inventory.end())
+			{
+				int temp2 = checkInventory(useItem);
+				if (inventory[temp2] == "healing_potion")
+				{
+					srand((int)time(0));
+					int heal = (rand() % 30) + 50;
+					hp += heal;
+					cout << "You use the healing potion and heal " << heal << " HP" << endl;
+				}
+				else if (inventory[temp2] == "key")
+				{
+					cout << "To use the key, just walk through the door." << endl;
+				}
+				else if (inventory[temp2] == "note")
+				{
+					cout << "The note says, 'TOP, 15'" << endl;
+				}
+				else
+				{
+					cout << "You can't use that." << endl;
+				}
+
+			}
+			else
+			{
+				cout << "You don't have that in your inventory." << endl;
+			}
 		}
 		
-
-		if (monsterR == myR && monsterC == myC && monster1Alive)
+		else if (choice == "R@@ghav") //cheat code
 		{
-			monsterAttack();
+			monster1Alive = false;
+			monster2Alive = false;
+			room = 2;
+			inventory.push_back("stick");
+			inventory.push_back("key");
 		}
+
+		else if (choice != "q" || choice != "Q" || choice != "quit" || choice != "Quit")
+		{
+			cout << "I don't understand that" << endl;			
+		}
+
+		if (monster1R == myR && monster1C == myC && monster1Alive)			{
+			monsterAttack(1, monster1R, monster1C);
+		}
+		if (monster2R == myR && monster2C == myC && monster2Alive)
+		{
+			monsterAttack(2, monster2R, monster2C);
+		}
+		if (monster1R == monster2R && monster1C == monster2C)
+		{
+			cout << "The monsters bump into each other." << endl;
+			cout << "Both monsters lose 20 HP" << endl;
+			monster1HP -= 20;
+			monster2HP -= 20;
+		}
+
+		if (!monster1Alive && !monster2Alive && !gatewayOpen)
+		{
+			cout << "You killed both monsters." << endl;
+			cout << "A gateway opens on the right." << endl;
+			gatewayOpen = true;
+		}
+
+
 
 		if (hp < 1)
 		{
@@ -716,12 +1064,40 @@ int main()
 			{
 				choice = "q"; //exits out of while loop
 			}
-			else 
+			else
 			{
 				cout << "Okay." << endl;
-				cout << "There is no option to restart yet. If you are mad, please contact Raaghav Malik." << endl;
-				cout << "Otherwise, wait on this screen forever.";
+				cout << "Would you like to restart the game? [y/n]" << endl;
 				cin >> choice;
+				if (choice == "y" || choice == "Y" || choice == "yes" || choice == "Yes")
+				{
+					room = 1;
+					if (classChoice == classes[0]) //soldier
+					{
+						atk = 15;
+						hp = 150;
+						gold = 0;
+						xp = 10;
+						lvl = 1;
+					}
+					else if (classChoice == classes[1]) //wizard
+					{
+						atk = 25;
+						hp = 100;
+						gold = 0;
+						xp = 10;
+						lvl = 1;
+					}
+				}
+				else
+				{
+					cout << "Okay..." << endl;
+					cout << "Um..." << endl;
+					cout << "While we are waiting, what is your name?" << endl;
+					cin >> choice;
+					cout << "I could care less." << endl;
+					cin >> choice;
+				}
 			}
 		}
 	}
