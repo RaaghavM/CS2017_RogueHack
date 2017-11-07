@@ -2,7 +2,6 @@
 //
 
 //Things to improve:
-//make room switching smoother
 //add more quests and rooms
 //function(s) for moving
 
@@ -12,14 +11,13 @@
 //another monster
 //secret gateway
 
-//Things I've completed from your list:
+//Things I've completed:
 //choose number instead of name
 //displays room at bottom
 //machete
+//make room switching smoother
+//changed "and" to "an" (typo in help menu)
 //displays coordinates at bottom (actually added for debugging, but could stay as game mechanic)
-
-//Things I've changed:
-// changed "and" to "an" (typo in help menu)
 
 
 
@@ -524,7 +522,7 @@ void setAttributes(int room, bool gatewayOpen)
         }
     }
 }
-void playerMovements(int myR, int myC, string choice, string useItem, string classChoice)
+void playerMovements(int &myR, int &myC, string choice, string useItem, string classChoice)
 {
     //player movements
     if (choice == "a")  // Go left by one
@@ -925,13 +923,14 @@ int main()
         setInfo(atk, hp, gold, xp, lvl, room, myR, myC);
         setMap();
         setAttributes(room, gatewayOpen);
+        setPlayer(myR, myC);
         if (room == 1)
         {
             if (myR == KEY1_R && myC == KEY1_C && !(find(inventory.begin(), inventory.end(), "key") != inventory.end()))
             {
                 inventory.push_back("key");
                 cout << "You picked up the object, it was a key." << endl;
-                screen[KEY1_R][KEY1_C] = MAP_EMPTY;
+                //screen[KEY1_R][KEY1_C] = MAP_EMPTY;
             }
             
             if (myR == DOOR1_R && myC == DOOR1_C)
@@ -1067,7 +1066,7 @@ int main()
         }
         
         
-        setPlayer(myR, myC);
+        
         
         printScreen();
         cout << ">> ";
