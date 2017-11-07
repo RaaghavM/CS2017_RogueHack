@@ -181,6 +181,22 @@ int checkInventory(string item)
 	return -1;
 }
 
+void printInventory()
+{
+	if (inventory.size() == 0)
+	{
+		cout << "Your inventory is empty" << endl;
+	}
+	else
+	{
+		cout << "Your inventory: " << endl;
+		for (int d = 0; d < inventory.size(); d++)
+		{
+			cout << inventory[d] << endl;
+		}
+	}
+}
+
 int weaponPower(string weapon)
 {
 	if (weapon == "stick")
@@ -921,7 +937,7 @@ int main()
 		}
 
 		//other commands
-		else if (choice == "H" || choice == "h" || choice == "Help" || choice == "help")
+		else if (choice == "h" || choice == "H" || choice == "Help" || choice == "help")
 		{
 			cout << "RogueHack is a text adventure game with ASCII graphics.\n"
 				<< "List of commands: (All commands must be followed with enter)\n"
@@ -954,18 +970,7 @@ int main()
 		}
 		else if (choice == "i" || choice == "I" || choice == "inventory" || choice == "Inventory")
 		{
-			if (inventory.size() == 0)
-			{
-				cout << "Your inventory is empty" << endl;
-			}
-			else
-			{
-				cout << "Your inventory: " << endl;
-				for (int d = 0; d < inventory.size(); d++)
-				{
-					cout << inventory[d] << endl;
-				}
-			}
+			printInventory();
 		}
 		else if (choice == "e" || choice == "E" || choice == "weapons" || choice == "Weapons")
 		{
