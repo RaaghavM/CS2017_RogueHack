@@ -7,7 +7,7 @@
 //fix monster movement problems
 //add number choosing instead of name
 
-//For some reason going back to room 1 after killing the monsters causes script to crash??
+//For some reason after killing the monsters and returning to room 1 it goes back to room 2?
 
 //Things I added:
 //another monster
@@ -368,6 +368,8 @@ int moveMonsterRow(int mNum, int currentMonsterRow, int currentMonsterCol)
 			}
 		}
 	}
+
+	return currentMonsterRow;
 }
 		
 int moveMonsterColumn(int currentMonsterRow, int currentMonsterCol)
@@ -408,6 +410,8 @@ int moveMonsterColumn(int currentMonsterRow, int currentMonsterCol)
 			monsterAttack(2, currentMonsterRow, currentMonsterCol);
 		}
 	}
+
+	return currentMonsterCol;
 }
 
 //bool monster1Alive()
@@ -756,7 +760,7 @@ int main()
 		//player movements
 		if (choice == "a")  // Go left by one
 		{
-			if (screen[myR][myC - 1] != MAP_VWALL && screen[myR][myC - 1] != MAP_HWALL ||  (myR == HIDDENDOOR_R && myC - 1 == HIDDENDOOR_C))
+			if (myC > 0 && screen[myR][myC - 1] != MAP_VWALL && screen[myR][myC - 1] != MAP_HWALL ||  (myR == HIDDENDOOR_R && myC - 1 == HIDDENDOOR_C))
 			{
 				myC -= 1;
 			}
